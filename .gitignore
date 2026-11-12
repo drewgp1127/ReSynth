@@ -9,3 +9,4 @@ models/
 *.ckpt
 *.th
 *.pth
+*.egg-info/

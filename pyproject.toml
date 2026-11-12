@@ -1,0 +1,31 @@
+[project]
+name = "patch-finder"
+version = "0.1.0"
+description = "Turn a clip of a synth sound into a loadable Vital preset (prototype)."
+requires-python = ">=3.11"
+dependencies = [
+    "vita==0.1.0",
+    "numpy>=2.0,<3",
+    "scipy>=1.13,<2",
+    "librosa>=0.11,<1.1",
+    "cma>=4.0,<5",
+    "soundfile>=0.12,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not slow' -p no:cacheprovider"
+markers = ["slow: long-running searches (run with -m slow)"]
+filterwarnings = [
+    "ignore:Could not import matplotlib:UserWarning",
+]
