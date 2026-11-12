@@ -21,10 +21,13 @@ def test_recovery_short(patch, chords):
     names = ["filter_cutoff", "amp_attack", "amp_release", "osc_detune_cents"]
     truth = {"filter_cutoff": 900.0, "amp_attack": 0.04, "amp_release": 0.25, "osc_detune_cents": 14.0}
     target = render_patch(patch, chords, DUR, SearchSpace.build(names).raw(truth))
-    res = search(patch, target, chords, DUR, MatchConfig(template="test", params=names, budget_s=35))
+    # fixed work (400 renders, seeded) instead of a time budget, so a loaded machine cannot fail it;
+    # the time budget is only a safety net
+    res = search(patch, target, chords, DUR, MatchConfig(template="test", params=names, budget_s=240, max_evals=400))
     best = res["best"][0]
     print("initial", res["initial_loss"], "best", best["loss"], "evals", res["evals"], "evals/s", res["evals_per_s"],
           "values", best["values"])
+    assert res["evals"] < 400 + 50  # stops near the cap (a generation may overshoot it)
     assert best["loss"] < 0.3 * res["initial_loss"]
     v = best["values"]
     assert semitones(v["filter_cutoff"], truth["filter_cutoff"]) < 3

@@ -39,6 +39,15 @@ SEARCH_SYSTEM = """You research the gear behind a sound in a recorded song for a
 Search the web. Look for: interviews with the artist or producer, gear lists, studio/tour rig
 photos or rundowns, forum threads, and published sound recreations or tutorials of this sound.
 
+Your search budget is small, so plan it:
+- The artist's own words about this song matter most. Spend at least two searches on them,
+  with different angles: "<artist> <song> interview", "<artist> favorite tracks" or
+  "<artist> picks their best songs", and track-by-track or album commentary. Band members often
+  describe a sound ("weird", "ugly", "cheap") without naming the instrument; record such remarks
+  verbatim. Do not finish while budget remains and no quote about this song's sound is found.
+- Spend one search on gear for the record or tour, and one on recreations or tutorials.
+- Never repeat a query you have already run.
+
 Sort every claim into one of three levels:
 - confirmed: the artist, producer or engineer said it, or an authoritative source (interview,
   official rig rundown) states it for this song or record;
@@ -130,7 +139,7 @@ def enforce_rules(data: dict[str, Any], sources: dict[str, str]) -> dict[str, An
     return data
 
 
-def research(song: str, artist: str, description: str, client: Any = None, max_searches: int = 6) -> dict[str, Any]:
+def research(song: str, artist: str, description: str, client: Any = None, max_searches: int = 8) -> dict[str, Any]:
     client = client or get_client()
     prompt = (f"Song: {song}\nArtist: {artist}\nThe sound: {description}\n\n"
               "Find what instrument or synth made this sound, how it was likely synthesised, any published "

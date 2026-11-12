@@ -97,7 +97,7 @@ def _add_usage(total: dict[str, int], resp: Any) -> None:
             total[k] = total.get(k, 0) + v
 
 
-def search_notes(client: Any, system: str, prompt: str, max_searches: int = 6, max_tokens: int = 16000,
+def search_notes(client: Any, system: str, prompt: str, max_searches: int = 10, max_tokens: int = 16000,
                  effort: str = "medium") -> SearchNotes:
     """Let Claude research with web search; collect its final text and the URLs it saw."""
     messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
@@ -117,8 +117,8 @@ def search_notes(client: Any, system: str, prompt: str, max_searches: int = 6, m
                     url = getattr(c, "url", None)
                     if url:
                         out.urls.setdefault(url, getattr(c, "title", "") or "")
-            elif btype == "server_tool_use":
-                out.searches += 1
+            elif btype == "server_tool_use" and getattr(block, "name", "") == "web_search":
+                out.searches += 1  # code_execution calls (web search's dynamic filtering) are not searches
             elif btype == "web_search_tool_result":
                 content = getattr(block, "content", None)
                 if isinstance(content, list):  # an error result is a single object, not a list
@@ -128,7 +128,7 @@ def search_notes(client: Any, system: str, prompt: str, max_searches: int = 6, m
                             out.urls.setdefault(url, getattr(r, "title", "") or "")
         if resp.stop_reason != "pause_turn":
             break
-        messages = [{"role": "user", "content": prompt}, {"role": "assistant", "content": resp.content}]
+        messages.append({"role": "assistant", "content": resp.content})  # resume; keeps earlier paused turns
     out.text = "\n".join(t for t in texts if t.strip())
     return out
 

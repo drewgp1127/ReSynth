@@ -51,6 +51,7 @@ class MatchConfig:
     fixed: dict[str, float] = field(default_factory=dict)
     weights: LossWeights = field(default_factory=LossWeights)
     budget_s: float = 180.0
+    max_evals: int | None = None  # also stop after this many renders (fixed work, for tests); refine gets its share
     plateau_gens: int = 30
     plateau_tol: float = 1e-3  # relative improvement that counts as progress
     restarts: int = 2  # on plateau, restart around the best point with 2x population (IPOP), this many times
@@ -236,7 +237,8 @@ class _Search:
         if self.progress:
             self.progress(min(self.elapsed() / self.cfg.budget_s, 1.0), best, self.gen, self.evals)
 
-    def cma(self, ctx: str, x0: list[float], sigma: float, until_s: float, phase: str) -> str:
+    def cma(self, ctx: str, x0: list[float], sigma: float, until_s: float, phase: str,
+            until_evals: float | None = None) -> str:
         cfg, restart = self.cfg, 0
         ref = self.pools[ctx][0].loss if self.pools.get(ctx) else float("inf")
         start = list(x0)
@@ -254,7 +256,7 @@ class _Search:
             if self.pools[ctx][0].loss < ref * (1 - cfg.plateau_tol):
                 ref, last_improve = self.pools[ctx][0].loss, self.gen + 1
             self.log(phase, ctx, restart)
-            if self.elapsed() >= until_s:
+            if self.elapsed() >= until_s or (until_evals is not None and self.evals >= until_evals):
                 return "budget"
             stalled = self.gen - last_improve >= cfg.plateau_gens
             if stalled or es.stop():
@@ -297,13 +299,15 @@ def search(patch: dict[str, Any], target: np.ndarray, notes: list[Note], duratio
         init_loss, init_parts = s.run("full", [x0], cfg.keep)[0]
         t_search = time.time()
         refine_s = cfg.budget_s * cfg.refine_frac if span else 0.0
-        stop_reason = s.cma(work, x0, cfg.sigma0, cfg.budget_s - refine_s, "cma")
+        refine_n = cfg.max_evals * cfg.refine_frac if (cfg.max_evals and span) else 0.0
+        stop_reason = s.cma(work, x0, cfg.sigma0, cfg.budget_s - refine_s, "cma",
+                            cfg.max_evals - refine_n if cfg.max_evals else None)
         if span:
             # re-score the best distinct window candidates on the whole clip, then refine there
             s.run("full", [c.unit for c in s.pools["win"][:cfg.verify_top]], cfg.keep)
             s.log("verify", "full")
-            if refine_s > 0 and s.elapsed() < cfg.budget_s:
-                s.cma("full", s.pools["full"][0].unit, cfg.sigma_refine, cfg.budget_s, "refine")
+            if refine_s > 0 and s.elapsed() < cfg.budget_s and (not cfg.max_evals or s.evals < cfg.max_evals):
+                s.cma("full", s.pools["full"][0].unit, cfg.sigma_refine, cfg.budget_s, "refine", cfg.max_evals)
         best = s.pools["full"][:cfg.keep]
         search_time = time.time() - t_search
     return {

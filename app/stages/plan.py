@@ -36,6 +36,23 @@ class InvalidPlan(ValueError):
     pass
 
 
+# Measured under a mix, these read low: stem separation and masking remove highs, and a pitch
+# blip's measured depth is a lower bound. Claude may narrow the near side; the far side stays open.
+OPEN_FAR_SIDE = ("filter_cutoff", "pitch_env_amount")
+
+
+def open_far_side(name: str, lo: float, hi: float) -> tuple[float, float]:
+    """Widen a range of an under-measured parameter to the parameter's limit away from zero."""
+    p = PARAMS[name]
+    if name not in OPEN_FAR_SIDE:
+        return lo, hi
+    if hi > 0:
+        hi = p.hi
+    if lo < 0:
+        lo = p.lo
+    return lo, hi
+
+
 def analysis_summary(analysis: dict[str, Any]) -> dict[str, Any]:
     """The numbers Claude needs (drops the long per-frame tracks)."""
     pm = analysis.get("pitch_movement") or {}
@@ -81,6 +98,9 @@ Rules:
 - Search at most {MAX_PARAMS} parameters: the ones that most change how this sound differs from the
   template. Ranges must lie inside each parameter's bounds; narrow them when the analysis or
   research justifies it, otherwise leave the full bounds.
+- Filter cutoff and pitch-envelope depth measured from a separated stem read LOW (separation and
+  the mix remove highs; a blip's measured depth is a lower bound). For these two, set only the
+  lower bound from the analysis; the upper bound is always kept at the parameter's limit.
 - Use the analysis numbers as evidence. A recreation from the research describes the type of
   sound, not the original gear; use it only as a hint for the template and ranges.
 - Give a short reason for each choice."""
@@ -121,7 +141,7 @@ def validate(raw: dict[str, Any], manifest: dict[str, Any]) -> dict[str, Any]:
         lo, hi = max(min(lo, hi), p.lo), min(max(lo, hi), p.hi)
         if hi <= lo or (p.log and lo <= 0):
             raise InvalidPlan(f"range for {name} is empty or outside {p.lo}..{p.hi}")
-        ranges[name] = [lo, hi]
+        ranges[name] = list(open_far_side(name, lo, hi))
     initial: dict[str, float] = {}
     for i in raw.get("initial") or []:
         name = i.get("param")

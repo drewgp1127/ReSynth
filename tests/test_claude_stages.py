@@ -83,6 +83,14 @@ def test_research_pause_turn_is_resumed(tmp_path):
     assert state["n"] == 2 and REVIEW in out["sources"]
 
 
+def test_code_execution_calls_are_not_counted_as_searches():
+    from types import SimpleNamespace
+    blocks = [SimpleNamespace(type="server_tool_use", name="code_execution", input={"code": "x"}),
+              NS_server_tool_use(), NS_server_tool_use(), text_block("notes")]
+    notes = claude_mod.search_notes(FakeClient(lambda kw: response(blocks)), "s", "p")
+    assert notes.searches == 2
+
+
 def test_research_skipped_without_key(tmp_path, monkeypatch):
     monkeypatch.delenv(claude_mod.KEY_ENV, raising=False)
     out = run_research(tmp_path, "Song", "Artist", "desc")
@@ -129,6 +137,19 @@ def test_claude_plan_validated_and_merged():
     assert plan["ranges"]["filter_cutoff"] == [1000.0, 16000.0]  # clipped to the param bounds
     assert plan["ranges"]["pitch_env_amount"] == [2.0, 24.0]  # filled from the analysis
     assert plan["initial"]["filter_cutoff"] == 4000.0
+
+
+def test_claude_plan_keeps_far_side_open_for_under_measured_params():
+    # live run: Claude narrowed cutoff to 500-4000 Hz from a dark-reading stem; the truth was 5000 Hz
+    raw = {"template": "pitch_blip_keys", "params": ["filter_cutoff", "pitch_env_amount", "amp_attack"],
+           "ranges": [{"param": "filter_cutoff", "lo": 500, "hi": 4000},
+                      {"param": "pitch_env_amount", "lo": -12, "hi": -1.5},
+                      {"param": "amp_attack", "lo": 0.002, "hi": 0.06}],
+           "initial": [{"param": "filter_cutoff", "value": 1500}], "reasons": []}
+    plan = validate(raw, load_manifest())
+    assert plan["ranges"]["filter_cutoff"] == [500.0, 16000.0]
+    assert plan["ranges"]["pitch_env_amount"] == [-24.0, -1.5]
+    assert plan["ranges"]["amp_attack"] == [0.002, 0.06]  # other params keep Claude's range
 
 
 @pytest.mark.parametrize("bad", [
