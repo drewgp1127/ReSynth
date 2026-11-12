@@ -63,10 +63,6 @@ class MatchConfig:
     window_s: float | None = 1.3  # search on a span of whole chords this long; None = whole clip
     verify_top: int = 8
     refine_frac: float = 0.15  # share of the budget for refining on the whole clip
-    sweep_passes: int = 2  # coordinate sweeps before CMA-ES (0 = off)
-    sweep_points: int = 9  # 6 was too coarse: detune (beating) has narrow basins and the sweep locked onto a wrong one
-    sweep_max_frac: float = 0.35  # sweeps stop after this share of the budget
-    sigma_after_sweep: float = 0.15
     sigma_refine: float = 0.08
 
     @classmethod
@@ -240,29 +236,6 @@ class _Search:
         if self.progress:
             self.progress(min(self.elapsed() / self.cfg.budget_s, 1.0), best, self.gen, self.evals)
 
-    def sweep(self, ctx: str, x: list[float], passes: int, points: int) -> list[float]:
-        """Coordinate sweeps: try `points` evenly spaced values of each parameter in turn and keep
-        the best; later passes revisit only the parameters the loss was most sensitive to."""
-        x = list(x)
-        order = list(range(len(x)))
-        grid = np.linspace(0.04, 0.96, points)
-        cur = self.run(ctx, [x], self.cfg.keep_search)[0][0]
-        for p in range(passes):
-            spread: dict[int, float] = {}
-            for i in order:
-                if self.elapsed() > self.cfg.budget_s * self.cfg.sweep_max_frac:
-                    return x
-                trials = [x[:i] + [float(g)] + x[i + 1:] for g in grid if abs(g - x[i]) > 1e-3]
-                losses = [r[0] for r in self.run(ctx, trials, self.cfg.keep_search)]
-                spread[i] = max(losses + [cur]) - min(losses + [cur])
-                k = int(np.argmin(losses))
-                if losses[k] < cur:
-                    x, cur = trials[k], losses[k]
-                self.log(f"sweep{p + 1}", ctx)
-            order = sorted(spread, key=spread.get, reverse=True)[:max(2, len(order) // 2)]
-            grid = np.linspace(0.02, 0.98, points * 2 - 1)
-        return x
-
     def cma(self, ctx: str, x0: list[float], sigma: float, until_s: float, phase: str) -> str:
         cfg, restart = self.cfg, 0
         ref = self.pools[ctx][0].loss if self.pools.get(ctx) else float("inf")
@@ -296,9 +269,9 @@ def search(patch: dict[str, Any], target: np.ndarray, notes: list[Note], duratio
            progress=None) -> dict[str, Any]:
     """Find parameter values whose render of `notes` sounds like `target`.
 
-    Phases: (1) optional coordinate sweeps from the start point, (2) CMA-ES, both on a short
-    window of whole chords when the clip is long (`window_s`), then (3) the best window
-    candidates re-scored on the whole clip and (4) a short CMA-ES refine on the whole clip.
+    Phases: (1) CMA-ES on a short window of whole chords when the clip is long (`window_s`),
+    (2) the best window candidates re-scored on the whole clip, (3) a short CMA-ES refine on the
+    whole clip.
     Returned losses are always whole-clip losses."""
     space = SearchSpace.build(cfg.params, cfg.ranges, cfg.fixed)
     start_vals = {**template_values(patch, cfg.params), **{k: v for k, v in cfg.initial.items() if k in cfg.params}}
@@ -323,10 +296,8 @@ def search(patch: dict[str, Any], target: np.ndarray, notes: list[Note], duratio
         s = _Search(pool, space, cfg, t0, progress)
         init_loss, init_parts = s.run("full", [x0], cfg.keep)[0]
         t_search = time.time()
-        x = s.sweep(work, x0, cfg.sweep_passes, cfg.sweep_points) if cfg.sweep_passes else list(x0)
         refine_s = cfg.budget_s * cfg.refine_frac if span else 0.0
-        stop_reason = s.cma(work, x, cfg.sigma0 if not cfg.sweep_passes else cfg.sigma_after_sweep,
-                            cfg.budget_s - refine_s, "cma")
+        stop_reason = s.cma(work, x0, cfg.sigma0, cfg.budget_s - refine_s, "cma")
         if span:
             # re-score the best distinct window candidates on the whole clip, then refine there
             s.run("full", [c.unit for c in s.pools["win"][:cfg.verify_top]], cfg.keep)
