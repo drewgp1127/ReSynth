@@ -69,3 +69,37 @@ def test_match_stage_job_folder(patch, chords, tmp_path):
     status = json.loads((tmp_path / "status" / "match.json").read_text())
     assert status["state"] == "done" and status["progress"] == 1.0
     assert res["evals"] > 0
+
+
+TEMPLATE_CASES = {
+    "pluck": {"filter_cutoff": 700.0, "filter_env_amount": 35.0, "filt_decay": 0.12, "amp_decay": 0.35, "amp_attack": 0.01},
+    "pitch_blip_keys": {"pitch_env_amount": 8.0, "pitch_env_decay": 0.04, "osc_detune_cents": 20.0,
+                        "filter_cutoff": 5000.0, "amp_attack": 0.01},
+    "pad": {"amp_attack": 0.25, "filter_cutoff": 900.0, "osc1_unison_detune": 30.0, "filter_lfo_rate": 0.6,
+            "amp_release": 0.5},
+}
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("name", sorted(TEMPLATE_CASES))
+def test_recovery_on_templates(name, chords):
+    from app.stages.match import TEMPLATES_DIR
+    from app.synth.vital import load_template
+
+    patch = load_template(TEMPLATES_DIR / f"{name}.vital")
+    truth = TEMPLATE_CASES[name]
+    names = list(truth)
+    dur = 1.6
+    target = render_patch(patch, chords, dur, SearchSpace.build(names).raw(truth))
+    res = search(patch, target, chords, dur, MatchConfig(template=name, params=names, budget_s=60))
+    best = res["best"][0]
+    print(name, "initial", res["initial_loss"], "best", best["loss"], "evals", res["evals"],
+          "values", {k: round(v, 4) for k, v in best["values"].items()})
+    assert best["loss"] < 0.3 * res["initial_loss"]
+    v = best["values"]
+    assert semitones(v["filter_cutoff"], truth["filter_cutoff"]) < 4
+    assert 0.5 < v["amp_attack"] / truth["amp_attack"] < 2
+    if "osc_detune_cents" in truth:
+        assert abs(v["osc_detune_cents"] - truth["osc_detune_cents"]) < 4
+    if "pitch_env_amount" in truth:
+        assert abs(v["pitch_env_amount"] - truth["pitch_env_amount"]) < 2
