@@ -1,8 +1,8 @@
 """End-to-end check without the Claude stages.
 
 Renders the pitch-blip template with hidden parameter values playing chords, mixes it under a
-synthetic drum + bass bed, then runs isolate -> analyse -> match (starting from the template's
-defaults) and writes target, match and a loudness-matched A/B to an output folder, plus
+synthetic drum + bass bed, then runs isolate -> analyse -> plan (rule-based, as without an API
+key) -> match, and writes target, match and a loudness-matched A/B to an output folder, plus
 e2e_summary.json with the numbers.
 
 Run: .venv/bin/python -m tests.e2e_pipeline [out_dir] [--budget SECONDS]
@@ -21,6 +21,7 @@ from app.stages.analyse import run_analyse
 from app.stages.common import SR, make_ab, read_audio, read_json, write_audio, write_json
 from app.stages.isolate import choose_target, run_isolate
 from app.stages.match import TEMPLATES_DIR, run_match, template_values
+from app.stages.plan_rules import rule_plan
 from app.synth.loss import LossFn
 from app.synth.params import SearchSpace
 from app.synth.vital import Note, load_template, render_patch
@@ -66,9 +67,11 @@ def run_e2e(out: Path, budget_s: float = 180.0) -> dict[str, Any]:
     choose_target(out, chosen)
     analysis = run_analyse(out)
 
+    # the plan stage as the app runs it without an API key (rule-based, from the analysis)
     manifest = json.loads((TEMPLATES_DIR / "manifest.json").read_text())
-    params = manifest[TEMPLATE]["search"]
-    write_json(out / "plan.json", {"template": TEMPLATE, "params": params})
+    plan = rule_plan(analysis, "the pulsing main synth chords with a quick pitch blip on each chord", manifest)
+    write_json(out / "plan.json", plan)
+    params = plan["params"]
     match = run_match(out, budget_s=budget_s)
 
     target = read_audio(out / "target.wav")
@@ -105,6 +108,7 @@ def run_e2e(out: Path, budget_s: float = 180.0) -> dict[str, Any]:
             "loss_vs_clean_synth_truth_params_with_detected_notes": round(vs_clean(render_patch(
                 patch, notes, target.shape[1] / SR, SearchSpace.build(list(TRUTH)).raw(TRUTH)))[0], 4),
         },
+        "plan": {"template": plan["template"], "params": params, "ranges": plan["ranges"], "initial": plan["initial"]},
         "params": {k: {"start": round(start.get(k, math.nan), 4), "truth": TRUTH.get(k),
                        "found": round(v, 4)} for k, v in found.items()},
         "files": ["song.wav", "clean_truth.wav", "target.wav", "match_1.wav", "ab.wav", "match_1.vital"],

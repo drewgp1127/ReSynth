@@ -103,3 +103,30 @@ def test_recovery_on_templates(name, chords):
         assert abs(v["osc_detune_cents"] - truth["osc_detune_cents"]) < 4
     if "pitch_env_amount" in truth:
         assert abs(v["pitch_env_amount"] - truth["pitch_env_amount"]) < 2
+
+
+def test_select_window_picks_whole_chords():
+    from app.stages.match import select_window
+    from app.synth.vital import Note
+
+    chords = [Note(m, t, 0.45) for t in (0.05, 0.65, 1.25, 1.85) for m in (53, 57, 60, 64)]
+    span = select_window(chords, 2.7, 1.3)
+    assert span is not None
+    a, b = span
+    assert a <= 0.05 and abs(b - 1.25) < 1e-9  # two whole chords, ends at the third onset
+    assert select_window(chords, 1.4, 1.3) is None  # short clip: search on all of it
+    # a partly detected first chord is skipped in favour of a complete one
+    partial = [n for n in chords if not (n.onset == 0.05 and n.midi != 53)]
+    a, _ = select_window(partial, 2.7, 1.3)
+    assert abs(a - 0.62) < 1e-9
+
+
+def test_crop_context_shifts_notes(chords):
+    from app.stages.match import crop_context
+    from app.synth.loss import LossWeights
+
+    target = np.zeros((2, int(1.2 * 44100)), np.float32)
+    target[:, 1000:] = 0.1
+    ctx = crop_context(target, chords, (0.55, 1.2), LossWeights())
+    assert [n.onset for n in ctx.notes] == pytest.approx([0.05, 0.05, 0.05])
+    assert abs(ctx.duration - 0.65) < 1e-3
