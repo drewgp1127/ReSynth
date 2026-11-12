@@ -1,6 +1,6 @@
 {
- "author": "Patch Finder",
- "comments": "Patch Finder template: two slightly detuned tri-saw oscillators with a fast up-then-down pitch blip on each note (the 'Lemon Glow' type); osc wave here sweeps triangle -> tri-saw -> saw. Generated from Vital's init patch.",
+ "author": "ReSynth",
+ "comments": "ReSynth template: two slightly detuned tri-saw oscillators with a fast up-then-down pitch blip on each note (the 'Lemon Glow' type); osc wave here sweeps triangle -> tri-saw -> saw. Generated from Vital's init patch.",
  "macro1": "MACRO 1",
  "macro2": "MACRO 2",
  "macro3": "MACRO 3",
@@ -1192,7 +1192,7 @@
   "volume": 5473.04052734375,
   "wavetables": [
    {
-    "author": "Patch Finder",
+    "author": "ReSynth",
     "full_normalize": true,
     "groups": [
      {
@@ -1224,7 +1224,7 @@
     "version": "99999.9.9"
    },
    {
-    "author": "Patch Finder",
+    "author": "ReSynth",
     "full_normalize": true,
     "groups": [
      {
@@ -1256,7 +1256,7 @@
     "version": "99999.9.9"
    },
    {
-    "author": "Patch Finder",
+    "author": "ReSynth",
     "full_normalize": true,
     "groups": [
      {

@@ -1,4 +1,4 @@
-"""Generate Patch Finder's starting templates from Vital's init patch.
+"""Generate ReSynth's starting templates from Vital's init patch.
 
 Run: .venv/bin/python scripts/make_templates.py
 Writes app/templates/<name>.vital and app/templates/manifest.json. Deterministic: running it
@@ -145,7 +145,7 @@ TABLES = {"tri_saw": tri_saw_table}
 
 def build(recipe: dict[str, Any]) -> dict[str, Any]:
     patch = base_patch(recipe["name"])
-    patch["comments"] = f"Patch Finder template: {recipe['description']}. Generated from Vital's init patch."
+    patch["comments"] = f"ReSynth template: {recipe['description']}. Generated from Vital's init patch."
     for idx, table in recipe.get("tables", {}).items():
         patch["settings"]["wavetables"][idx] = TABLES[table]()
     patch["settings"].update(recipe.get("settings", {}))

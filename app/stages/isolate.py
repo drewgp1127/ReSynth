@@ -30,7 +30,7 @@ import numpy as np
 from app.stages.common import SR, read_audio, read_json, write_audio, write_json, write_status
 
 DEFAULT_MODEL = "htdemucs_6s.yaml"
-MODELS_DIR = Path(os.environ.get("PATCH_FINDER_MODELS", Path(__file__).resolve().parents[2] / "models"))
+MODELS_DIR = Path(os.environ.get("RESYNTH_MODELS", Path(__file__).resolve().parents[2] / "models"))
 NON_SYNTH_STEMS = {"drums", "vocals"}
 # htdemucs_6s splits synths unpredictably between other/piano/guitar, so offer their sum too
 MELODIC_STEMS = ("other", "piano", "guitar")
@@ -151,7 +151,7 @@ def choose_target(job_dir: str | Path, choice: str) -> Path:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Patch Finder stage 2: crop + stem separation")
+    ap = argparse.ArgumentParser(description="ReSynth stage 2: crop + stem separation")
     ap.add_argument("job_dir")
     ap.add_argument("upload")
     ap.add_argument("start", type=float)

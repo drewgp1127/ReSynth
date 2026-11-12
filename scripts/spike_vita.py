@@ -1,4 +1,4 @@
-"""Milestone 0 spike: prove the vita API does what Patch Finder needs.
+"""Milestone 0 spike: prove the vita API does what ReSynth needs.
 
 Run: .venv/bin/python scripts/spike_vita.py
 Prints one line per check; exits non-zero if any check fails.

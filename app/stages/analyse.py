@@ -478,7 +478,7 @@ def run_analyse(job_dir: str | Path, note_method: str = "auto") -> dict[str, Any
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Patch Finder stage 3: analyse target.wav")
+    ap = argparse.ArgumentParser(description="ReSynth stage 3: analyse target.wav")
     ap.add_argument("job_dir")
     ap.add_argument("--notes", default="auto", choices=["auto", "basic-pitch", "pyin"])
     a = ap.parse_args()

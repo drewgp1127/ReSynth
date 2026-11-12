@@ -1,4 +1,4 @@
-# Patch Finder
+# ReSynth
 
 Prototype that turns a short clip of a synth sound into a loadable [Vital](https://vital.audio)
 preset by render-and-compare search. See `docs/plan.md` for the full design and
@@ -25,7 +25,7 @@ basic-pitch the analyse stage falls back to librosa pYIN (monophonic notes only)
 audio-separator the isolate stage degrades to the raw slice.
 
 Stem-separation weights (htdemucs_6s, ~55 MB, from dl.fbaipublicfiles.com / github.com) are
-downloaded on first use into `models/` (override with `PATCH_FINDER_MODELS`).
+downloaded on first use into `models/` (override with `RESYNTH_MODELS`).
 
 ## Tests
 

@@ -1,4 +1,4 @@
-# Patch Finder — prototype plan
+# ReSynth — prototype plan
 
 ## Context
 

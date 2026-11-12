@@ -251,7 +251,7 @@ def run_match(job_dir: str | Path, config: MatchConfig | None = None, **override
         result = search(patch, target, notes, duration, config, progress)
         space = SearchSpace.build(config.params, config.ranges, config.fixed)
         for i, c in enumerate(result["best"], 1):
-            save_vital(patch, job / f"match_{i}.vital", space.raw(c["values"]), name=f"Patch Finder match {i}")
+            save_vital(patch, job / f"match_{i}.vital", space.raw(c["values"]), name=f"ReSynth match {i}")
         best_raw = space.raw(result["best"][0]["values"])
         r = VitalRenderer(patch)
         r.set_params(best_raw)
@@ -269,7 +269,7 @@ def run_match(job_dir: str | Path, config: MatchConfig | None = None, **override
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Patch Finder stage 5: CMA-ES match")
+    ap = argparse.ArgumentParser(description="ReSynth stage 5: CMA-ES match")
     ap.add_argument("job_dir")
     ap.add_argument("--budget", type=float, default=None, help="time budget in seconds")
     ap.add_argument("--workers", type=int, default=None)
