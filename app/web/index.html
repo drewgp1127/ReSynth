@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>ReSynth</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c2410c'/%3E%3Cpath d='M5 18c3 0 3-8 6-8s3 12 6 12 3-14 6-14 3 10 4 10' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="brand" href="/" aria-label="ReSynth home">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M5 18c3 0 3-8 6-8s3 12 6 12 3-14 6-14 3 10 4 10"/></svg>
+        <span>ReSynth</span>
+      </a>
+      <p class="tagline">From a synth sound in a song to a Vital preset</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="notice" class="notice" hidden></div>
+    <div id="error" class="error" role="alert" hidden></div>
+
+    <section id="step-upload" class="card">
+      <h2><span class="num">1</span> Your clip</h2>
+      <form id="upload-form" novalidate>
+        <label class="drop" id="drop">
+          <input type="file" id="file" name="file" accept=".wav,.mp3,.m4a,.flac,.aac,.ogg,audio/*" required>
+          <span class="drop-main" id="drop-label">Choose an audio file or drop it here</span>
+          <span class="drop-hint">WAV, MP3, M4A or FLAC, up to 60 seconds</span>
+        </label>
+        <div class="grid2">
+          <label class="field"><span>Song</span><input id="song" name="song" autocomplete="off"></label>
+          <label class="field"><span>Artist</span><input id="artist" name="artist" autocomplete="off"></label>
+        </div>
+        <label class="field"><span>Which sound?</span>
+          <textarea id="description" name="description" rows="2" placeholder="e.g. the pulsing main synth chords with a quick pitch blip"></textarea>
+        </label>
+        <label class="field"><span>Your gear <small>(optional)</small></span>
+          <input id="gear" name="gear" placeholder="e.g. Serum, Logic Alchemy, a Juno-106">
+        </label>
+        <div class="actions"><button type="submit" class="primary" id="upload-btn">Upload clip</button></div>
+      </form>
+    </section>
+
+    <section id="step-region" class="card" hidden>
+      <h2><span class="num">2</span> Mark the cleanest 1–3 seconds</h2>
+      <p class="help">Drag the highlighted box over a moment where the sound is clearest; drag its edges to resize.</p>
+      <div id="waveform" class="waveform" aria-label="Waveform of the uploaded clip"></div>
+      <div class="region-bar">
+        <button type="button" id="play-region" class="ghost">Play selection</button>
+        <span id="region-info" class="mono"></span>
+      </div>
+      <div class="actions"><button type="button" class="primary" id="region-btn">Separate stems</button></div>
+    </section>
+
+    <section id="step-stems" class="card" hidden>
+      <h2><span class="num">3</span> Pick where the sound is clearest</h2>
+      <p class="help" id="stems-help">Listen to each version of your selection and pick the one where the synth stands out most.</p>
+      <div id="stems" class="stems" role="radiogroup" aria-label="Stems"></div>
+      <div class="actions"><button type="button" class="primary" id="stem-btn">Find the patch</button></div>
+    </section>
+
+    <section id="step-progress" class="card" hidden>
+      <h2>Progress</h2>
+      <ol id="stages" class="stages"></ol>
+    </section>
+
+    <section id="step-results" class="card results" hidden>
+      <h2>Result</h2>
+      <div class="sim">
+        <span id="sim-label" class="badge"></span>
+        <p id="sim-text"></p>
+      </div>
+      <div class="ab">
+        <h3>Listen</h3>
+        <p class="help">The A/B file plays your target, a short gap, then the match at the same loudness.</p>
+        <audio id="ab-audio" controls preload="none"></audio>
+        <div class="ab-buttons">
+          <button type="button" class="ghost" data-play="target.wav">Target only</button>
+          <button type="button" class="ghost" data-play="match_1.wav">Match only</button>
+        </div>
+      </div>
+      <div class="downloads" id="downloads"></div>
+      <div id="report" class="report"></div>
+      <div class="actions"><a class="ghost button" href="/" id="new-job">Start a new clip</a></div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Runs on this computer. Presets load in <a href="https://vital.audio" target="_blank" rel="noopener">Vital</a> (free).</p>
+  </footer>
+
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

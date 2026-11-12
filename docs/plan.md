@@ -132,3 +132,24 @@ Each milestone ends with something runnable.
 ## Out of scope for the prototype
 
 DAW plugin, Serum/hardware preset files, text-only mode, accounts, training our own matching model.
+
+## Build notes: where the build differs from this plan
+
+- **Name.** The product is ReSynth. The folder and the `app/` package keep their names.
+- **Stage runner.** The web server starts each phase (research, isolate, then
+  analyse→plan→match→report) as its own Python process (`python -m app.jobs <phase> <job>`)
+  instead of a background thread: the match stage's worker pool needs a spawn-safe main module on
+  Windows, separation memory is freed after each job, and a crash cannot take the server down.
+  Status stays one file per stage (`<job>/status/<stage>.json`), not one `status.json`.
+- **Research is two API calls.** Web-search answers carry citations, which structured outputs do
+  not accept, so research first searches and writes notes, then a second call structures them into
+  `research.json`. URLs Claude cites are checked against the URLs the search returned.
+- **Plan has a rule-based fallback** (`app/stages/plan_rules.py`) used without a key or when
+  Claude's plan fails validation, so the pipeline runs offline minus research and prose.
+- **Recipe text is generated from the final values in code** (`app/stages/recipe.py`); Claude
+  writes only the "on your gear" notes, effects and tips around it, so the numbers in the report
+  always match `patch.vital`.
+- **Match search** works in phases (CMA-ES on a short window of whole chords, re-score on the
+  whole region, short refine), with starting values and ranges from the analysis; the rule-based
+  plan searches up to 10 parameters (8 measured worse) — see README "Match search".
+- **Deploy (milestone 6) is not done**; the app is meant to run locally (Windows) for now.

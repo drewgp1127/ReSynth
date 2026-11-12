@@ -1,0 +1,3 @@
+# Windows scripts are stored with CRLF line endings exactly as Windows expects them
+*.bat -text
+*.ps1 -text
