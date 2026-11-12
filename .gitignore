@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+jobs/
+scratch/
+models/
+*.onnx
+*.ckpt
+*.th
+*.pth
