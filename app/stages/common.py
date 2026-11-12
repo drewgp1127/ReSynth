@@ -52,3 +52,18 @@ def read_audio(path: Path, sr: int = SR) -> np.ndarray:
 def write_audio(path: Path, audio: np.ndarray, sr: int = SR) -> None:
     audio = np.asarray(audio, dtype=np.float32)
     sf.write(str(path), audio.T if audio.ndim == 2 else audio, sr, subtype="FLOAT")
+
+
+def make_ab(target: np.ndarray, match: np.ndarray, gap_s: float = 0.5, sr: int = SR) -> np.ndarray:
+    """Target, a gap, then the match RMS-matched to the target, as one stereo array."""
+    def stereo(x: np.ndarray) -> np.ndarray:
+        x = np.asarray(x, dtype=np.float32)
+        return np.stack([x, x]) if x.ndim == 1 else (np.repeat(x, 2, axis=0) if x.shape[0] == 1 else x[:2])
+
+    t, m = stereo(target), stereo(match)
+    rt, rm = float(np.sqrt(np.mean(t ** 2))), float(np.sqrt(np.mean(m ** 2)))
+    if rm > 1e-9:
+        m = m * (rt / rm)
+    out = np.concatenate([t, np.zeros((2, int(gap_s * sr)), np.float32), m], axis=1)
+    peak = float(np.abs(out).max())
+    return out / peak * 0.98 if peak > 0.98 else out

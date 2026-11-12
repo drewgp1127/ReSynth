@@ -17,6 +17,7 @@ import vita
 SR = 44100
 WARMUP = (60, 0.0, 0.02, 0.3)  # settles Vital's control smoothing after changes
 TAIL_CAP_S = 2.0
+DUR_QUANTUM_S = 0.02  # note lengths are rounded to this so repeated notes share one render
 
 
 @dataclass(frozen=True)
@@ -79,21 +80,24 @@ def amp_release_seconds(controls: dict[str, Any]) -> float:
 
 
 def mix_notes(render_one, notes: Iterable[Note], duration: float, tail: float, sr: int = SR) -> np.ndarray:
-    """Place per-note renders at their onsets in a (2, n) buffer of `duration` seconds."""
+    """Place per-note renders at their onsets in a (2, n) buffer of `duration` seconds.
+
+    Notes with the same pitch, velocity and length are rendered once and reused (render calls
+    dominate the search's cost); each render is long enough for the earliest such note."""
     n_total = int(round(duration * sr))
     out = np.zeros((2, n_total), dtype=np.float32)
-    cache: dict[tuple, np.ndarray] = {}
+    groups: dict[tuple, list[Note]] = {}
     for note in notes:
-        start = int(round(note.onset * sr))
-        if start >= n_total:
-            continue
-        render_dur = min(note.duration + tail, duration - note.onset)
-        key = (note.midi, round(note.velocity, 4), round(note.duration, 4), round(render_dur, 4))
-        if key not in cache:
-            cache[key] = render_one(note.midi, note.velocity, note.duration, render_dur)
-        audio = cache[key]
-        n = min(audio.shape[1], n_total - start)
-        out[:, start:start + n] += audio[:, :n]
+        if int(round(note.onset * sr)) < n_total:
+            dur = max(round(note.duration / DUR_QUANTUM_S), 1) * DUR_QUANTUM_S
+            groups.setdefault((note.midi, round(note.velocity, 4), round(dur, 4)), []).append(note)
+    for (midi, vel, dur), group in groups.items():
+        render_dur = min(dur + tail, duration - min(n.onset for n in group))
+        audio = render_one(midi, vel, dur, render_dur)
+        for note in group:
+            start = int(round(note.onset * sr))
+            n = min(audio.shape[1], n_total - start)
+            out[:, start:start + n] += audio[:, :n]
     return out
 
 
