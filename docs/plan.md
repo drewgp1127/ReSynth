@@ -153,3 +153,14 @@ DAW plugin, Serum/hardware preset files, text-only mode, accounts, training our 
   whole region, short refine), with starting values and ranges from the analysis; the rule-based
   plan searches up to 10 parameters (8 measured worse) — see README "Match search".
 - **Deploy (milestone 6) is not done**; the app is meant to run locally (Windows) for now.
+- **First live API run (2026-11-12).** Research on "Lemon Glow" (Beach House) found the band's
+  "ugliest keyboard sound ever" remark (Alex Scally, Baltimore Magazine), kept the model unknown
+  and labelled the Reverb Machine remake as a recreation. That took a research prompt that makes
+  Claude spend searches on the artist's own words: with a general prompt it never searched for
+  them. Cost: about 120k input / 3.5k output tokens per research run (~$0.55); plan and report
+  are much smaller. Web search with dynamic filtering runs searches from inside code execution,
+  so `searches` counts only `web_search` calls.
+- **Cutoff and pitch-blip depth keep their far range open.** On a synthetic job Claude narrowed
+  cutoff to 0.5-4 kHz from a stem that read dark; the true value was 5 kHz. `plan.validate` now
+  resets the upper bound of `filter_cutoff` and the outer bound of `pitch_env_amount` to the
+  parameter limit, whatever Claude asks for.
